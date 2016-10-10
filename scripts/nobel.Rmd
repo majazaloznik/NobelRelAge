@@ -26,7 +26,6 @@ require(stringr)
 ```{r get-data, tidy=TRUE, message=FALSE}
 u <- "http://api.nobelprize.org/v1/laureate.json"
 nobel <- fromJSON(u)
-nobel$laureates[909,]
 
 # table with one row per prize
 prizes <- rbind_all(nobel$laureates$prizes)[1:2]
@@ -36,6 +35,29 @@ prizes <- rbind_all(nobel$laureates$prizes)[1:2]
 cnt <- sapply(nobel$laureates$prizes, function(x) nrow(x))
 prizes$gender <- rep(nobel$laureates$gender, cnt)
 prizes$born <- rep(nobel$laureates$born, cnt)
+
+# add new 2016 one's birthdays 
+# 907 Yoshinori Ohsumi medicine February 9, 1945 https://en.wikipedia.org/wiki/Yoshinori_Ohsumi
+prizes$born[907] <- "1945-02-09"
+# http://starsunfolded.com/michael-kosterlitz/
+prizes$born[908] <- "1942-01-01"
+# https://en.wikipedia.org/wiki/Duncan_Haldane
+prizes$born[909] <- "1951-09-14"
+# https://en.wikipedia.org/wiki/David_J._Thouless
+prizes$born[910] <- "1934-09-21"
+#https://en.wikipedia.org/wiki/Fraser_Stoddart
+prizes$born[911] <- "1942-05-24"
+#https://en.wikipedia.org/wiki/Jean-Pierre_Sauvage
+prizes$born[912] <- "1944-10-21"
+#https://en.wikipedia.org/wiki/Ben_Feringa
+prizes$born[913] <- "1951-05-18"
+#https://en.wikipedia.org/wiki/Juan_Manuel_Santos
+prizes$born[914] <- "1951-08-10"
+#https://en.wikipedia.org/wiki/Oliver_Hart_(economist)
+prizes$born[915] <- "1948-10-09"
+#https://en.wikipedia.org/wiki/Bengt_R._Holmstr%C3%B6m
+prizes$born[916] <- "1949-04-18"
+
 prizes$age <- as.numeric(as.Date(paste(prizes$year, "12-31", sep = "-"), "%Y-%m-%d") - as.Date(prizes$born, "%Y-%m-%d"))/365
 prizes$country <- rep(nobel$laureates$bornCountryCode, cnt)
 
@@ -98,7 +120,9 @@ lexp %>%
 ```
 
 
-and there we have it! only curiously it seems that the 2016 winners don't have their birthdays in yet!  
-so need to find them manually
+and there we have it! 
 
-Yoshinori Ohsumi February 9, 1945 https://en.wikipedia.org/wiki/Yoshinori_Ohsumi
+```{r}
+
+```
+Yoshinori Ohsumi medicine February 9, 1945 https://en.wikipedia.org/wiki/Yoshinori_Ohsumi
