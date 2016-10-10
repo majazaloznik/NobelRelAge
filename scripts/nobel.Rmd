@@ -1,0 +1,104 @@
+---
+title: "Nobel Prize Winner's Relative Ages"
+author: "Maja Zaloznik"
+date: "compiled `r Sys.time()`"
+output: 
+  html_document: 
+  keep_md: yes
+number_sections: yes
+---
+
+# Introduction
+This document uses the Nobel Prize API data on Nobel Prize winners' ages and the Human Mortality Database data on life expectancies, to calculate the "relative" ages of the winners. 
+
+HT to Neil Saunders who's code for analysing the API data is in  [this github repo here](https://github.com/neilfws/NobelAnalysis).
+
+
+# Getting the data
+We use the [Nobel Prize API](https://nobelprize.readme.io/) to fetch laureate data in JSON format.
+
+```{r setup, message=FALSE}
+library(jsonlite)
+library(dplyr)
+require(stringr)
+```
+
+```{r get-data, tidy=TRUE, message=FALSE}
+u <- "http://api.nobelprize.org/v1/laureate.json"
+nobel <- fromJSON(u)
+nobel$laureates[909,]
+
+# table with one row per prize
+prizes <- rbind_all(nobel$laureates$prizes)[1:2]
+
+
+# count multiple winners
+cnt <- sapply(nobel$laureates$prizes, function(x) nrow(x))
+prizes$gender <- rep(nobel$laureates$gender, cnt)
+prizes$born <- rep(nobel$laureates$born, cnt)
+prizes$age <- as.numeric(as.Date(paste(prizes$year, "12-31", sep = "-"), "%Y-%m-%d") - as.Date(prizes$born, "%Y-%m-%d"))/365
+prizes$country <- rep(nobel$laureates$bornCountryCode, cnt)
+
+#for some reason there are 6 empty rows in the data. remove
+prizes <- prizes[!is.na(prizes$year),]
+prizes$year <- as.numeric(prizes$year)
+# remove organizations as well
+prizes %>%
+  filter(gender != "org") -> prizes
+
+```
+
+
+Cleaning up life expectancy data from HMD (cheet sheet John Minton's code [here](https://github.com/JonMinton/Lexis_Surface_Difference_Maps) ). 
+
+```{r, eval = FALSE, echo = FALSE}
+files.to.grab <- dir("data/e0_per/E0per/")
+
+Fun <- function(filename, dir){
+  out <- read.table(
+    paste0(
+      dir, filename
+      ),
+    skip=1, header=T
+    )
+  
+  country_code_part <- str_extract(filename, "^[^\\.]*") 
+  # regex: 
+  # ^ : start of line
+  # [^\\.]*  : anything but '.', 1 or more times
+  
+  out$country_code <- country_code_part
+
+  return(out)
+}
+
+# yup, solved it without plyr! (John used ldply)
+lexp <- files.to.grab %>% lapply(Fun, dir="data/e0_per/E0per/") %>% rbind_all()
+
+```
+
+Actually, it's easier to use world data, from "our world in data"
+```{r}
+lexp <- read.csv("https://ourworldindata.org/grapher/life-expectancy-globally-since-1770.csv?country=ALL")
+#rename stupid column name
+names(lexp)[3] <- "lexp"
+# keep only world data on year and lexp
+# pad missing years and join back
+lexp %>% 
+  filter(Country == "World") %>%
+  select(Year, lexp ) %>%
+  full_join(data.frame(Year = seq(min(lexp$Year), 2016))) %>%
+  arrange(Year) %>%
+  mutate(lexp.interpolated = zoo::na.spline(lexp)) %>%
+  select(Year, lexp.interpolated) %>%
+  right_join(prizes, by = c("Year" = "year"))-> full.lexp
+
+ 
+
+```
+
+
+and there we have it! only curiously it seems that the 2016 winners don't have their birthdays in yet!  
+so need to find them manually
+
+Yoshinori Ohsumi February 9, 1945 https://en.wikipedia.org/wiki/Yoshinori_Ohsumi
