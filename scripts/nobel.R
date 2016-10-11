@@ -1,28 +1,8 @@
----
-title: "Nobel Prize Winner's Relative Ages"
-author: "Maja Zaloznik"
-date: "compiled `r Sys.time()`"
-output: 
-  html_document: 
-  keep_md: yes
-number_sections: yes
----
-# Introduction
-This document uses the Nobel Prize API data on Nobel Prize winners' ages and the Our world in Data data on life expectancies, to calculate the "relative" ages of the winners. 
 
-HT to Neil Saunders who's code for analysing the API data is in  [this github repo here](https://github.com/neilfws/NobelAnalysis).
-
-
-# Getting the data
-We use the [Nobel Prize API](https://nobelprize.readme.io/) to fetch laureate data in JSON format.
-
-```{r setup, message=FALSE}
 library(jsonlite)
 library(dplyr)
 require(stringr)
-```
 
-```{r get-data, tidy=TRUE, message=FALSE}
 u <- "http://api.nobelprize.org/v1/laureate.json"
 nobel <- fromJSON(u)
 
@@ -67,70 +47,60 @@ prizes$year <- as.numeric(prizes$year)
 prizes %>%
   filter(gender != "org") -> prizes
 rm(cnt, nobel, u)
-```
 
 
-Actually, it's easier to use world data, from "our world in data"
-```{r}
 lexp <- read.csv("https://ourworldindata.org/grapher/life-expectancy-globally-since-1770.csv?country=ALL")
 #rename stupid column name
 names(lexp)[3] <- "lexp"
 # keep only world data on year and lexp
 # pad missing years and join back
 lexp %>% 
-  filter(Country == "World") %>%
-  select(Year, lexp ) %>%
-  full_join(data.frame(Year = seq(min(lexp$Year), 2016))) %>%
-  arrange(Year) %>%
-  mutate(lexp.interpolated = zoo::na.spline(lexp)) %>%
-  select(Year, lexp.interpolated) %>%
-  right_join(prizes, by = c("Year" = "year"))-> full.lexp
+filter(Country == "World") %>%
+select(Year, lexp ) %>%
+full_join(data.frame(Year = seq(min(lexp$Year), 2016))) %>%
+arrange(Year) %>%
+mutate(lexp.interpolated = zoo::na.spline(lexp)) %>%
+select(Year, lexp.interpolated) %>%
+right_join(prizes, by = c("Year" = "year"))-> full.lexp
 
- rm(prizes, lexp)
-
-```
+rm(prizes, lexp)
 
 
-and there we have it! 
-
-```{r}
 span = 2/3
 degree = 2
 FunPlotNorm <- function(data, color){
-  x <- data$Year
-  y <- data$age
-  scatter.smooth(x, y, pch = 19, 
-                 axes = FALSE,
-               col = color[1], lpars = list(col = color[2], lwd = 3),
-               xlab = "Year", ylab = "Age", main = deparse(substitute(data)),
-               ylim = c(0,100), xlim = c(1900, 2020))
-  lines(c(1900,2020), c(20,20), lty=2, lwd=0.5)
-  lines(c(1900,2020), c(40,40), lty=2, lwd=0.5)
-  lines(c(1900,2020), c(60,60), lty=2, lwd=0.5)
-  lines(c(1900,2020), c(80,80), lty=2, lwd=0.5)
-  lines(c(1900,2020), c(100,100), lty=2, lwd=0.5)
+x <- data$Year
+y <- data$age
+scatter.smooth(x, y, pch = 19, 
+axes = FALSE,
+col = color[1], lpars = list(col = color[2], lwd = 3),
+xlab = "Year", ylab = "Age", main = deparse(substitute(data)),
+ylim = c(0,100), xlim = c(1900, 2020))
+lines(c(1900,2020), c(20,20), lty=2, lwd=0.5)
+lines(c(1900,2020), c(40,40), lty=2, lwd=0.5)
+lines(c(1900,2020), c(60,60), lty=2, lwd=0.5)
+lines(c(1900,2020), c(80,80), lty=2, lwd=0.5)
+lines(c(1900,2020), c(100,100), lty=2, lwd=0.5)
 axis(1, las=2, at = seq(1900, 2020, 20),labels = c(1900, 1920, 1940, 1960, 1980, 2000,""))
 
 }
 
 FunPlotRelative <- function(data, color){
-  x <- data$Year
-  y <- data$age/data$lexp.interpolated
-  scatter.smooth(x, y, pch = 19, 
-                 axes = FALSE,
-               col = color[1], lpars = list(col = color[2], lwd = 3),
-               xlab = "Year", ylab = "Age", main = deparse(substitute(data)),
-               ylim = c(0,2.2), xlim = c(1900, 2020))
-  lines(c(1900,2020), c(0.5,0.5), lty=2, lwd=0.5)
-  lines(c(1900,2020), c(1,1), lty=2, lwd=0.5)
-  lines(c(1900,2020), c(1.5,1.5), lty=2, lwd=0.5)
-  lines(c(1900,2020), c(2,2), lty=2, lwd=0.5)
-  lines(c(1900,2020), c(100,100), lty=2, lwd=0.5)
+x <- data$Year
+y <- data$age/data$lexp.interpolated
+scatter.smooth(x, y, pch = 19, 
+axes = FALSE,
+col = color[1], lpars = list(col = color[2], lwd = 3),
+xlab = "Year", ylab = "Age", main = deparse(substitute(data)),
+ylim = c(0,2.2), xlim = c(1900, 2020))
+lines(c(1900,2020), c(0.5,0.5), lty=2, lwd=0.5)
+lines(c(1900,2020), c(1,1), lty=2, lwd=0.5)
+lines(c(1900,2020), c(1.5,1.5), lty=2, lwd=0.5)
+lines(c(1900,2020), c(2,2), lty=2, lwd=0.5)
+lines(c(1900,2020), c(100,100), lty=2, lwd=0.5)
 axis(1, las=2, at = seq(1900, 2020, 20),labels = c(1900, 1920, 1940, 1960, 1980, 2000,""))
 }
-```
 
-```{r}
 physics <- full.lexp[full.lexp$category == "physics",]
 chemistry <- full.lexp[full.lexp$category == "chemistry",]
 medicine <- full.lexp[full.lexp$category == "medicine",]
@@ -139,7 +109,7 @@ literature <- full.lexp[full.lexp$category == "literature",]
 peace <- full.lexp[full.lexp$category == "peace",]
 
 layout(mat=matrix(1:7, c(1,7)), widths = c(1,3,3,3,3,3,3))
-par(mar = c(3,2.2,1,0))
+par(mar = c(3,2.4,1,0))
 plot(1,1, ylim= c(0,100), type = "n", axes = FALSE, xlab = "", ylab = "")
 axis(2, las=2)
 par(mar = c(3,0,1,0))
@@ -151,14 +121,13 @@ FunPlotNorm(economics, c("orange1", "orange3"))
 FunPlotNorm(literature, c("gray70", "gray40"))  
 FunPlotNorm(peace, c("mediumpurple1", "mediumpurple4"))  
 
-```
 
-  
-```{r}
+
+
 
 
 layout(mat=matrix(1:7, c(1,7)), widths = c(1,3,3,3,3,3,3))
-par(mar = c(3,2.2,1,0))
+par(mar = c(3,2.4,1,0))
 plot(1,1, ylim= c(0,2.2), type = "n", axes = FALSE, xlab = "", ylab = "")
 axis(2, las=2)
 par(mar = c(3,0,1,0))
@@ -170,5 +139,3 @@ FunPlotRelative(economics, c("orange1", "orange3"))
 FunPlotRelative(literature, c("gray70", "gray40"))             
 FunPlotRelative(peace, c("mediumpurple1", "mediumpurple4")) 
 
-```
-               
